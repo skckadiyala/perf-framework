@@ -15,12 +15,6 @@ spec:
       labels:
         jmeter_mode: master
     spec:
-    {{- if .Values.hybrid }}
-      hostAliases:
-      - hostnames:
-        - {{ .Values.hybrid.hostname }}
-        ip: {{ .Values.hybrid.ip }}
-    {{- end }}
       containers:
       - name: jmmaster
         image: "{{ .Values.repository }}/{{ .Values.jmeter.images.master }}" 

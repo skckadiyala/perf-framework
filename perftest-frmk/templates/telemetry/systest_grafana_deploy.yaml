@@ -1,4 +1,4 @@
-{{- if .Values.telemetry.enabled -}}
+{{- if .Values.grafana.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,7 +17,7 @@ spec:
     spec:
       initContainers:
       - name: wait-for-influxdb
-        image: {{ .Values.telemetry.images.grafana }}
+        image: {{ .Values.grafana.image }}
         command:
         - sh
         - "-c"
@@ -25,7 +25,7 @@ spec:
         - "sleep 5; until curl --max-time 3 -s http://systest-influxdb:8086/ping/; do echo waiting for influxdn; sleep 2;done;"
       containers:
       - name: grafana
-        image: {{ .Values.telemetry.images.grafana }}
+        image: {{ .Values.grafana.image }}
         imagePullPolicy: {{ .Values.imagePullPolicy }}
         ports:
         - containerPort: 3000
@@ -51,21 +51,21 @@ spec:
     {{- end }}
 {{- end }}
 ---
-{{- if .Values.telemetry.enabled -}}
+{{- if .Values.grafana.enabled -}}
 apiVersion: v1
 kind: Service
 metadata:
   name: systest-grafana
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: {{ .Values.telemetry.hostname.grafana }}
+    external-dns.alpha.kubernetes.io/hostname: {{ .Values.grafana.hostname }}
   labels:
     app: systest-grafana
 spec:
   ports:
     - port: 80
       targetPort: 3000
-      nodePort: {{ .Values.telemetry.grafana.service.nodePort }}
+      nodePort: {{ .Values.grafana.service.nodePort }}
   selector:
     app: systest-grafana
-  type: {{ .Values.telemetry.grafana.service.type }}
+  type: {{ .Values.grafana.service.type }}
 {{- end }}

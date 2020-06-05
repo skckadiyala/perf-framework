@@ -1,4 +1,3 @@
-{{- if .Values.telemetry.enabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -16,7 +15,7 @@ spec:
         - "echo 'waiting for pod'"
         - "sleep 5; until curl --max-time 3 -s http://systest-influxdb:8086/ping/; do echo waiting for influxdn; sleep 2;done;"
       containers:
-        - image: {{ .Values.telemetry.images.influxdb }}
+        - image: {{ .Values.jmeter.images.influxdb }}
           name: influxdb
           command: 
           - sh
@@ -47,4 +46,3 @@ spec:
 {{ toYaml .Values.telemetry.tolerations | indent 8 }}
     {{- end }}
   backoffLimit: 1
-{{- end }}

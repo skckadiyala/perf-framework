@@ -12,7 +12,6 @@ imageCredentials:
   username: 
   password: 
 
-
 jmeter:
 # If false, jmeter will not be installed  
   enabled: true
@@ -21,12 +20,12 @@ jmeter:
 # the number of jmeter slaves to be used
   salveReplicaCount: 2
 
-
 #jmeter container names
   images:
     master: jmeter-k6:latest
     slave: jmeter-slave:1.0.2
-    
+    influxdb: influxdb:1.7.7
+
   ## Node labels for jmeter pod assignment
   ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
   ##
@@ -42,30 +41,29 @@ jmeter:
     value: "jmeter"
     effect: "NoSchedule"
 
+grafana: 
+  enabled: false
+  image: grafana/grafana:5.2.4
+  # hostname should contain the FQDN name. 
+  hostname: 
+
+  service:
+    # type: NodePort
+    type: LoadBalancer
+    nodePort: 32100
+
+influxNginx:
+  enabled: false
+  image: nginx-proxy:1.0.1
+  # hostname shoudl contain the FQDN name. 
+  hostname: 
+
+  service:
+  # type: NodePort
+  type: LoadBalancer
+  nodePort: 32200 
+
 telemetry:
-# If false, influxdb and grafana will not be installed  
-  enabled: true
-
-  images:
-    grafana: grafana/grafana:5.2.4
-    influxdb: influxdb:1.7.7
-    nginxProxy: nginx-proxy:1.0.1
-  
-  grafana:
-    service:
-      # type: NodePort
-      type: LoadBalancer
-      nodePort: 32100
-  hostname:
-    grafana: 
-    influxdb: 
-      
-  nginx:
-     service:
-      # type: NodePort
-      type: LoadBalancer
-      nodePort: 32200 
-
   nodeSelector:
     dashboard-only: "true"
   ## Node tolerations for grafana scheduling to nodes with taints

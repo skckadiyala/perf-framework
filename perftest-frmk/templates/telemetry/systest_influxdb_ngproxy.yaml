@@ -1,4 +1,4 @@
-{{- if .Values.telemetry.enabled -}}
+{{- if .Values.influxNginx.enabled -}}
 apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
 kind: Deployment
 metadata:
@@ -17,7 +17,7 @@ spec:
     spec:
       initContainers:
       - name: wait-for-influxdb
-        image: {{ .Values.telemetry.images.grafana }}
+        image: {{ .Values.influxNginx.image }}
         command:
         - sh
         - "-c"
@@ -54,21 +54,21 @@ spec:
     {{- end }}
 {{- end }}
 ---
-{{- if .Values.telemetry.enabled -}}
+{{- if .Values.influxNginx.enabled -}}
 apiVersion: v1
 kind: Service
 metadata:
   name: nginx-influxdb
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: {{ .Values.telemetry.hostname.influxdb }}
+    external-dns.alpha.kubernetes.io/hostname: {{ .Values.influxNginx.hostname }}
   labels:
     nginx_mode: proxy
 spec:
   ports:
     - port: 80
       targetPort: 18086
-      nodePort: {{ .Values.telemetry.nginx.service.nodePort }}
+      nodePort: {{ .Values.influxNginx.service.nodePort }}
   selector:
     nginx_mode: proxy
-  type: {{ .Values.telemetry.nginx.service.type }}
+  type: {{ .Values.influxNginx.service.type }}
 {{- end }}

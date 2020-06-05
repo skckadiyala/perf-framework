@@ -16,12 +16,6 @@ spec:
       labels:
         jmeter_mode: slave
     spec:
-    {{- if .Values.hybrid }}
-      hostAliases:
-      - hostnames:
-        - {{ .Values.hybrid.hostname }}
-        ip: {{ .Values.hybrid.ip }}
-    {{- end }}
       containers:
       - name: jmslave
         image: "{{ .Values.repository }}/{{ .Values.jmeter.images.slave }}"  

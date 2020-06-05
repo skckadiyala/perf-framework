@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nginx-svc.fullname" . }}{{ .Values.name }}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: {{ .Values.DNSHostSSL }} 
+  labels:
+    {{- include "nginx-svc.labels" . | nindent 4 }}
+    app.kubernetes.io/nginx.sec: ssl
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.sslport }}
+      targetPort: https
+      protocol: TCP
+      name: https
+  selector:
+    {{- include "nginx-svc.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/nginx.sec: ssl

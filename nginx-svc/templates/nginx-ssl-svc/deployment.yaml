@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nginx-svc.fullname" . }}{{ .Values.name }}
+  labels:
+    {{- include "nginx-svc.labels" . | nindent 4 }}
+    app.kubernetes.io/nginx.sec: ssl
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "nginx-svc.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/nginx.sec: ssl
+  template:
+    metadata:
+      labels:
+        {{- include "nginx-svc.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/nginx.sec: ssl
+    spec:
+      imagePullSecrets:
+      - name: {{ .Values.imageCredentials.name }}
+      serviceAccountName: {{ include "nginx-svc.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.repository }}/{{ .Values.images.nginxssl }}"
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          env:
+          - name: SWAGGER_HOST
+            value: {{ .Values.DNSHostSSL }} 
+          command: [ "/bin/sh", "-c"]
+          args: [ "sed  -i 's/.*\"host\":.*/    \"host\": \"'${SWAGGER_HOST}'\",/' /usr/share/nginx/html/swagger.json && nginx -g \"daemon off;\"" ]
+          volumeMounts:
+            - name: nginx-certs
+              readOnly: true
+              mountPath: /etc/ssl
+          ports:
+            - name: https
+              containerPort: 8443
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: nginx-certs
+          secret:
+            secretName: nginx-certs   
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}

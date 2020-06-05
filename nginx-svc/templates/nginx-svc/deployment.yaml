@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nginx-svc.fullname" . }}
+  labels:
+    {{- include "nginx-svc.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "nginx-svc.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "nginx-svc.selectorLabels" . | nindent 8 }}
+    spec:
+      imagePullSecrets:
+      - name: {{ .Values.imageCredentials.name }}
+      serviceAccountName: {{ include "nginx-svc.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.repository }}/{{ .Values.images.nginx }}"
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          env:
+          - name: SWAGGER_HOST
+            value: {{ .Values.DNSHost }} 
+          command: [ "/bin/sh", "-c"]
+          args: [ "sed  -i 's/.*\"host\":.*/    \"host\": \"'${SWAGGER_HOST}'\",/' /usr/share/nginx/html/swagger.json && nginx -g \"daemon off;\"" ]
+          ports:
+            - name: http
+              containerPort: 8880
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}

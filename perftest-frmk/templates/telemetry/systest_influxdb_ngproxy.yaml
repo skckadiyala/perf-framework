@@ -1,0 +1,74 @@
+{{- if .Values.telemetry.enabled -}}
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: nginx-influxdb
+  labels:
+    nginx_mode: proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      nginx_mode: proxy
+  template:
+    metadata:
+      labels:
+        nginx_mode: proxy
+    spec:
+      initContainers:
+      - name: wait-for-influxdb
+        image: {{ .Values.telemetry.images.grafana }}
+        command:
+        - sh
+        - "-c"
+        - "echo 'waiting for pod'"
+        - "sleep 60; until curl --max-time 3 -s http://systest-influxdb:8086/ping/; do echo waiting for influxdn; sleep 2;done;"
+      containers:
+      - name: nginx-influxdb
+        image: "{{ .Values.repository }}/{{ .Values.telemetry.images.nginxProxy }}"
+        imagePullPolicy: {{ .Values.imagePullPolicy}}        
+        env:
+        - name: SERVICE_HOST
+          value: "systest-influxdb"
+        - name: SERVICE_URL
+          value: "http://systest-influxdb:8086"
+        - name: SERVICE_USER
+          value: "admin"
+        - name: SERVICE_PASSWORD
+          value: "admin"
+        - name: SERVICE_PORT
+          value: "18086"
+        command: ["/bin/sh","-c"]
+        args: [". /templates/default.sh > /etc/nginx/sites-available/default; nginx"]
+        ports:
+        - containerPort: 18086
+      imagePullSecrets:
+      - name: {{ .Values.imageCredentials.name }}
+    {{- if .Values.telemetry.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.telemetry.nodeSelector | indent 8 }}
+    {{- end }}
+    {{- if .Values.telemetry.tolerations }}
+      tolerations:
+{{ toYaml .Values.telemetry.tolerations | indent 8 }}
+    {{- end }}
+{{- end }}
+---
+{{- if .Values.telemetry.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-influxdb
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: {{ .Values.telemetry.hostname.influxdb }}
+  labels:
+    nginx_mode: proxy
+spec:
+  ports:
+    - port: 80
+      targetPort: 18086
+      nodePort: {{ .Values.telemetry.nginx.service.nodePort }}
+  selector:
+    nginx_mode: proxy
+  type: {{ .Values.telemetry.nginx.service.type }}
+{{- end }}

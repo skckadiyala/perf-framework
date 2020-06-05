@@ -1,0 +1,35 @@
+{{- if .Values.telemetry.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: systest-grafana-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: datasource
+        image: {{ .Values.telemetry.images.grafana }}
+        command: 
+          - sh
+          - "-c" 
+          - ". /datasource" 
+        volumeMounts:
+        - name: config-grafana
+          mountPath: /datasource
+          subPath: "datasource"
+      volumes:
+      - name: config-grafana
+        configMap:
+         name: grafana-config
+         defaultMode: 0755
+      restartPolicy: Never
+    {{- if .Values.telemetry.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.telemetry.nodeSelector | indent 8 }}
+    {{- end }}
+    {{- if .Values.telemetry.tolerations }}
+      tolerations:
+{{ toYaml .Values.telemetry.tolerations | indent 8 }}
+    {{- end }}
+  backoffLimit: 1
+{{- end }}

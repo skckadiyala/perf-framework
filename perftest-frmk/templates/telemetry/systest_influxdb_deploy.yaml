@@ -1,0 +1,66 @@
+{{- if .Values.telemetry.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: systest-influxdb
+  labels:
+    app: systest-influxdb
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: systest-influxdb
+  template:
+    metadata:
+      labels:
+        app: systest-influxdb
+    spec:
+      containers:
+        - image: {{ .Values.telemetry.images.influxdb }}
+          name: influxdb
+          volumeMounts:
+          - name: config-volume
+            mountPath: /etc/influxdb
+          ports:
+            - containerPort: 8083
+              name: influx
+            - containerPort: 8086
+              name: api
+            - containerPort: 2003
+              name: graphite
+      volumes:
+      - name: config-volume
+        configMap:
+          name: influxdb-config
+          defaultMode: 0755
+    {{- if .Values.telemetry.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.telemetry.nodeSelector | indent 8 }}
+    {{- end }}
+    {{- if .Values.telemetry.tolerations }}
+      tolerations:
+{{ toYaml .Values.telemetry.tolerations | indent 8 }}
+    {{- end }}
+{{- end }}
+---
+{{- if .Values.telemetry.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: systest-influxdb
+  labels:
+    app: systest-influxdb
+spec:
+  ports:
+    - port: 8083
+      name: http
+      targetPort: 8083
+    - port: 8086
+      name: api
+      targetPort: 8086
+    - port: 2003
+      name: graphite
+      targetPort: 2003
+  selector:
+    app: systest-influxdb
+{{- end }}

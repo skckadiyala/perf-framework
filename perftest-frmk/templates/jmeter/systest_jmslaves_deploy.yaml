@@ -1,0 +1,66 @@
+{{- if .Values.jmeter.enabled -}}
+{{- if .Values.jmeter.distributed -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jmeter-slaves
+  labels:
+    jmeter_mode: slave
+spec:
+  replicas: {{ .Values.jmeter.salveReplicaCount }}
+  selector:
+    matchLabels:
+      jmeter_mode: slave
+  template:
+    metadata:
+      labels:
+        jmeter_mode: slave
+    spec:
+    {{- if .Values.hybrid }}
+      hostAliases:
+      - hostnames:
+        - {{ .Values.hybrid.hostname }}
+        ip: {{ .Values.hybrid.ip }}
+    {{- end }}
+      containers:
+      - name: jmslave
+        image: "{{ .Values.repository }}/{{ .Values.jmeter.images.slave }}"  
+        imagePullPolicy: {{ .Values.imagePullPolicy}}
+        ports:
+        - containerPort: 1099
+        - containerPort: 50000
+      imagePullSecrets:
+      - name: {{ .Values.imageCredentials.name }}  
+    {{- if .Values.jmeter.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.jmeter.nodeSelector | indent 8 }}
+    {{- end }}
+    {{- if .Values.jmeter.tolerations }}
+      tolerations:
+{{ toYaml .Values.jmeter.tolerations | indent 8 }}
+    {{- end }}
+{{- end }}
+{{- end }}
+---
+{{- if and .Values.jmeter.enabled -}}
+{{- if .Values.jmeter.distributed -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: jmeter-slaves-svc
+  labels:
+    jmeter_mode: slave
+  namespace: {{ .Values.jmeter.namespace }}
+spec:
+  clusterIP: None
+  ports:
+    - port: 1099
+      name: first
+      targetPort: 1099
+    - port: 50000
+      name: second
+      targetPort: 50000
+  selector:
+    jmeter_mode: slave
+{{- end }}
+{{- end }}

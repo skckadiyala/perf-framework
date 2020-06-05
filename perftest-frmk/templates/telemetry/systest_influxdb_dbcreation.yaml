@@ -1,0 +1,50 @@
+{{- if .Values.telemetry.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: systest-influxdb-job
+spec:
+  template:
+    spec:
+      activeDeadlineSeconds: 150
+      initContainers:
+      - name: wait-for-influxdb
+        image: busybox
+        command:
+        - sh
+        - "-c"
+        - "echo 'waiting for pod'"
+        - "sleep 5; until curl --max-time 3 -s http://systest-influxdb:8086/ping/; do echo waiting for influxdn; sleep 2;done;"
+      containers:
+        - image: {{ .Values.telemetry.images.influxdb }}
+          name: influxdb
+          command: 
+          - sh
+          - "-c" 
+          - ". /etc/influxdb/script.sh" 
+          volumeMounts:
+          - name: config-volume
+            mountPath: /etc/influxdb
+          ports:
+            - containerPort: 18083
+              name: influx
+            - containerPort: 18086
+              name: api
+            - containerPort: 12003
+              name: graphite
+      volumes:
+      - name: config-volume
+        configMap:
+         name: influxdb-config
+         defaultMode: 0755
+      restartPolicy: Never
+    {{- if .Values.telemetry.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.telemetry.nodeSelector | indent 8 }}
+    {{- end }}
+    {{- if .Values.telemetry.tolerations }}
+      tolerations:
+{{ toYaml .Values.telemetry.tolerations | indent 8 }}
+    {{- end }}
+  backoffLimit: 1
+{{- end }}

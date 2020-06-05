@@ -1,0 +1,71 @@
+{{- if .Values.telemetry.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: systest-grafana
+  labels:
+    app: systest-grafana
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: systest-grafana
+  template:
+    metadata:
+      labels:
+        app: systest-grafana
+    spec:
+      initContainers:
+      - name: wait-for-influxdb
+        image: {{ .Values.telemetry.images.grafana }}
+        command:
+        - sh
+        - "-c"
+        - "echo 'waiting for pod'"
+        - "sleep 5; until curl --max-time 3 -s http://systest-influxdb:8086/ping/; do echo waiting for influxdn; sleep 2;done;"
+      containers:
+      - name: grafana
+        image: {{ .Values.telemetry.images.grafana }}
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
+        ports:
+        - containerPort: 3000
+          protocol: TCP
+        env:
+        - name: GF_AUTH_BASIC_ENABLED
+          value: "true"
+        - name: GF_USERS_ALLOW_ORG_CREATE
+          value: "true"
+        - name: GF_AUTH_ANONYMOUS_ENABLED
+          value: "true"
+        - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+          value: Admin
+        - name: GF_SERVER_ROOT_URL
+          value: /
+    {{- if .Values.telemetry.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.telemetry.nodeSelector | indent 8 }}
+    {{- end }}
+    {{- if .Values.telemetry.tolerations }}
+      tolerations:
+{{ toYaml .Values.telemetry.tolerations | indent 8 }}
+    {{- end }}
+{{- end }}
+---
+{{- if .Values.telemetry.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: systest-grafana
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: {{ .Values.telemetry.hostname.grafana }}
+  labels:
+    app: systest-grafana
+spec:
+  ports:
+    - port: 80
+      targetPort: 3000
+      nodePort: {{ .Values.telemetry.grafana.service.nodePort }}
+  selector:
+    app: systest-grafana
+  type: {{ .Values.telemetry.grafana.service.type }}
+{{- end }}

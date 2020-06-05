@@ -1,0 +1,15 @@
+{{- if .Values.telemetry.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-config
+  labels:
+    app: systest-granfana
+data:
+  datasource: |
+    #!/bin/bash
+    echo "creating datasources"
+    sleep 30
+    curl 'http://admin:admin@systest-grafana/api/datasources' -X POST -H 'Content-Type: application/json;charset=UTF-8' --data-binary '{"name":"jmeterdb","type":"influxdb","url":"http://systest-influxdb:8086","access":"proxy","isDefault":true,"database":"jmeter","user":"admin","password":"admin"}' 
+    echo "done"
+{{- end }}

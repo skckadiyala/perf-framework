@@ -1,0 +1,81 @@
+# Default values for perftest-frmk.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.IfNotPresent
+
+replicaCount: 1
+repository: skckadiyala
+imagePullPolicy: IfNotPresent
+
+imageCredentials:
+  name: regsecret
+  registry: 
+  username: 
+  password: 
+
+
+jmeter:
+# If false, jmeter will not be installed  
+  enabled: true
+# If true, jmeter will be in distibuted mode with 2 slave 
+  distributed: false
+# the number of jmeter slaves to be used
+  salveReplicaCount: 2
+
+
+#jmeter container names
+  images:
+    master: jmeter-k6:latest
+    slave: jmeter-slave:1.0.2
+    
+  ## Node labels for jmeter pod assignment
+  ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+  ##
+  nodeSelector:
+    jmeter-only: "true"
+
+  ## Node tolerations for jmeter scheduling to nodes with taints
+  ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+  ##
+  tolerations:
+  - key: "dedicated"
+    operator: "Equal"
+    value: "jmeter"
+    effect: "NoSchedule"
+
+telemetry:
+# If false, influxdb and grafana will not be installed  
+  enabled: true
+
+  images:
+    grafana: grafana/grafana:5.2.4
+    influxdb: influxdb:1.7.7
+    nginxProxy: nginx-proxy:1.0.1
+  
+  grafana:
+    service:
+      # type: NodePort
+      type: LoadBalancer
+      nodePort: 32100
+  hostname:
+    grafana: 
+    influxdb: 
+      
+  nginx:
+     service:
+      # type: NodePort
+      type: LoadBalancer
+      nodePort: 32200 
+
+  nodeSelector:
+    dashboard-only: "true"
+  ## Node tolerations for grafana scheduling to nodes with taints
+  ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+  ##
+  tolerations:
+  - key: "dedicated"
+    operator: "Equal"
+    value: "dashboard"
+    effect: "NoSchedule"
+
+
+

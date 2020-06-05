@@ -1,0 +1,51 @@
+{{- if .Values.jmeter.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jmeter-master
+  labels:
+    jmeter_mode: master
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      jmeter_mode: master
+  template:
+    metadata:
+      labels:
+        jmeter_mode: master
+    spec:
+    {{- if .Values.hybrid }}
+      hostAliases:
+      - hostnames:
+        - {{ .Values.hybrid.hostname }}
+        ip: {{ .Values.hybrid.ip }}
+    {{- end }}
+      containers:
+      - name: jmmaster
+        image: "{{ .Values.repository }}/{{ .Values.jmeter.images.master }}" 
+        imagePullPolicy: {{ .Values.imagePullPolicy}}
+        command: [ "/bin/bash", "-c", "--" ]
+        args: [ "while true; do sleep 30; done; " ]
+        volumeMounts:
+          - name: loadtest
+            mountPath: /jmeter/perf_test
+            subPath: "load_test"
+        ports:
+        - containerPort: 60000
+      imagePullSecrets:
+      - name: {{ .Values.imageCredentials.name }}
+      volumes:
+      - name: loadtest
+        configMap:
+          name: jmeter-load-test
+          defaultMode: 0755
+    {{- if .Values.jmeter.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.jmeter.nodeSelector | indent 8 }}
+    {{- end }}
+    {{- if .Values.jmeter.tolerations }}
+      tolerations:
+{{ toYaml .Values.jmeter.tolerations | indent 8 }}
+    {{- end }}
+{{- end }}
